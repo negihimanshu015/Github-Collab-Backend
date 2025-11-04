@@ -1,0 +1,42 @@
+# Web Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# Database
+SQLAlchemy>=2.0.23
+psycopg2-binary>=2.9.9
+alembic>=1.12.1  # For database migrations
+
+# Authentication & Security
+passlib[bcrypt]>=1.7.4
+python-jose[cryptography]>=3.3.0
+bleach>=6.1.0  # For input sanitization
+
+# Environment & Settings
+python-dotenv>=1.0.0
+pydantic-settings>=2.1.0
+
+# External Services
+PyGithub>=2.1.1
+google-generativeai>=0.3.0
+
+# AI/ML
+langchain==0.3.7
+langchain-core==0.3.17
+langchain-community==0.3.7
+langchain-text-splitters==0.3.2
+langchain-google-genai==2.0.5
+sentence-transformers>=2.2.2
+transformers>=4.35.0
+huggingface-hub>=0.19.3
+faiss-cpu>=1.7.4
+numpy>=1.26.2
+
+# Utilities
+requests>=2.31.0
+python-dateutil>=2.8.2
+
+# Testing
+pytest>=7.4.3
+pytest-asyncio>=0.21.1
+httpx>=0.25.1  # For async HTTP testing

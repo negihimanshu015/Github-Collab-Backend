@@ -1,0 +1,201 @@
+# Project specific
+demo.ps1
+.aider*
+.aider.*/
+.aider.tags.cache.v4/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual Environment
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+test-reports/
+
+# Database
+*.db
+*.sqlite3
+*.sqlite
+*.psql
+*.dump
+
+# Logs
+*.log
+logs/
+log/
+
+# Local development
+.DS_Store
+*.local
+local_settings.py
+docker-compose.override.yml
+
+# AI/ML artifacts
+.vector_store/
+.cache/
+model_cache/
+*.pkl
+*.h5
+*.pt
+*.onnx
+
+# Security
+.env*
+!.env.example
+*.pem
+*.key
+*.cert
+secrets/
+
+# Documentation
+/site
+docs/_build/
+_build/
+
+# Dependencies
+node_modules/
+yarn.lock
+package-lock.json
+
+# Temp files
+tmp/
+temp/
+.tmp/
+*.bak
+*.swp
+*.tmp
+
+# Celery/Redis
+celerybeat-schedule
+celerybeat.pid
+*.rdb
+
+# FastAPI
+.fastapi_*/
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Spyder project settings
+.spyderproject
+.spyderworkspace
+
+# Rope project settings
+.ropeproject
+
+# PyCharm files
+.idea/
+.project
+.pydevproject
+.settings/
+*.iml
+*.ipr
+*.iws
+
+# VSCode
+.vscode/
+
+# Pyright
+.pyright/
+pyrightconfig.json
