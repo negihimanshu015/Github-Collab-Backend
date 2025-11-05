@@ -31,7 +31,6 @@ The GitHub Collaboration Backend provides a comprehensive suite of tools for cod
 - **Vector Storage**: FAISS
 
 ### Development Tools
-- **Documentation**: OpenAPI/Swagger
 - **Testing**: pytest
 - **Container**: Docker & docker-compose
 - **Database Migration**: Alembic
