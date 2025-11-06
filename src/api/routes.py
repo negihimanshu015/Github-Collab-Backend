@@ -96,7 +96,9 @@ async def login(user_credentials: schemas.UserLogin, db: Session = Depends(get_d
         "token_type": "bearer",
         "user_id": user.id,
         "email": user.email
-    }@router.get("/admin/db-status")
+    }
+
+@router.get("/admin/db-status")
 async def check_db_status(db: Session = Depends(get_db)):
     """Check database connection and tables"""
     try:
@@ -151,7 +153,7 @@ async def create_project(
             name=db_project.name,
             description=db_project.description,
             github_repo=db_project.github_repo,
-            created_at=str(db_project.created_at)
+            owner_id=db_project.owner_id,
         )
     except Exception as e:
         db.rollback()
@@ -306,14 +308,44 @@ async def analyze_complete_repository(
         
         repo_info = extract_repo_info(request.repo_url)
         
-        # Get all files from the repository
+        # Configuration
+        MAX_FILES = 100
+        MAX_FILE_SIZE = 50_000  # characters
+        SUPPORTED_EXTENSIONS = ('.py', '.js', '.java', '.cpp', '.c', '.go', '.rs', '.ts', '.jsx', '.tsx')
+        
         files_content = []
-        def get_all_files(repo_full_name: str, path: str = ""):
-            contents = github_service.get_repo_content(repo_full_name, path)
+        skipped_files = []
+        
+        def get_all_files(repo_full_name: str, path: str = "", depth: int = 0):
+            # Prevent infinite recursion
+            if depth > 10:
+                return
+                
+            try:
+                contents = github_service.get_repo_content(repo_full_name, path)
+            except Exception as e:
+                print(f"Error accessing path {path}: {str(e)}")
+                return
+            
             for item in contents:
-                if item["type"] == "file" and item["name"].endswith(('.py', '.js', '.java', '.cpp', '.c', '.go', '.rs')):
+                # Stop if we've hit file limit
+                if len(files_content) >= MAX_FILES:
+                    return
+                    
+                if item["type"] == "file" and item["name"].endswith(SUPPORTED_EXTENSIONS):
                     try:
+                        # Skip large files
+                        if item.get("size", 0) > MAX_FILE_SIZE:
+                            skipped_files.append(f"{item['path']} (too large)")
+                            continue
+                            
                         content = github_service.get_file_content(repo_full_name, item["path"])
+                        
+                        # Skip if content is too large after fetching
+                        if len(content) > MAX_FILE_SIZE:
+                            skipped_files.append(f"{item['path']} (too large)")
+                            continue
+                            
                         files_content.append(schemas.FileContent(
                             name=item["name"],
                             path=item["path"],
@@ -321,14 +353,14 @@ async def analyze_complete_repository(
                             language=item["name"].split('.')[-1],
                             repo=repo_full_name
                         ))
-                    except:
-                        continue
+                    except Exception as e:
+                        skipped_files.append(f"{item['path']} (error: {str(e)})")
+                        
                 elif item["type"] == "dir":
-                    get_all_files(repo_full_name, item["path"])
+                    get_all_files(repo_full_name, item["path"], depth + 1)
         
         get_all_files(repo_info["full_name"])
 
-        # If no files were collected, return early with a clear message
         if not files_content:
             return schemas.RepoAnalysisResponse(
                 overall_analysis="No supported source files found in repository.",
@@ -336,28 +368,96 @@ async def analyze_complete_repository(
                 repo_info=repo_info
             )
 
-        # Process with LangChain
+        # Process with LangChain (if you're using vector store for Q&A later)
         documents = langchain_service.process_code_documents([f.dict() for f in files_content])
         langchain_service.create_vector_store(documents)
 
-        # Generate overall analysis
+        # Create a structured summary of the codebase
+        file_structure = {}
+        for file in files_content:
+            ext = file.language
+            if ext not in file_structure:
+                file_structure[ext] = []
+            file_structure[ext].append(file.path)
+        
+        structure_summary = "\n".join([
+            f"- {ext}: {len(files)} files" 
+            for ext, files in file_structure.items()
+        ])
+
+        # Sample files intelligently (get diverse file types)
+        sample_files = []
+        for ext in file_structure.keys():
+            ext_files = [f for f in files_content if f.language == ext]
+            sample_files.extend(ext_files[:2])  # 2 files per language
+        
+        # Limit to 10 files total for analysis
+        sample_files = sample_files[:10]
+        
+        # Create context for LLM
+        code_context = "\n\n---\n\n".join([
+            f"File: {f.path}\nLanguage: {f.language}\n\n{f.content[:2000]}"  # First 2000 chars
+            for f in sample_files
+        ])
+
+        # Generate structured analysis
         analysis_prompt = f"""
-        Analyze the entire codebase of repository {repo_info['full_name']} with {len(files_content)} files.
-        Provide a comprehensive analysis including:
-        1. Overall code quality
-        2. Architecture assessment
-        3. Potential improvements
-        4. Security considerations
-        5. Documentation quality
+Analyze this repository: {repo_info['full_name']}
+
+Repository Structure:
+{structure_summary}
+
+Total files analyzed: {len(files_content)}
+Sample files provided: {len(sample_files)}
+
+Sample Code:
+{code_context}
+
+Provide a CONCISE analysis with the following structure:
+
+## 1. Overview
+Brief description of the project's purpose and tech stack.
+
+## 2. Code Quality (3-4 bullet points)
+- Key strengths
+- Main areas for improvement
+
+## 3. Architecture (3-4 bullet points)
+- Overall structure
+- Design patterns used
+- Potential issues
+
+## 4. Security Concerns (2-3 bullet points)
+- Critical security issues if any
+- Recommendations
+
+## 5. Quick Wins (3-4 actionable items)
+- Immediate improvements that can be made
+
+Keep each section concise and actionable. Use bullet points, not paragraphs.
         """
 
         overall_analysis = gemini_service.generate_code_review(
-            "\n".join([f.content for f in files_content[:5]]),  # Sample of files
+            code_context,
             analysis_prompt,
         )
         
+        # Add metadata to response
+        analysis_with_metadata = f"""# Repository Analysis: {repo_info['full_name']}
+
+**Files Analyzed:** {len(files_content)} files
+**Files Skipped:** {len(skipped_files)} files
+**Sample Files Used:** {len(sample_files)} files
+
+{overall_analysis}
+
+---
+### Skipped Files
+{chr(10).join(skipped_files[:10]) if skipped_files else 'None'}
+"""
+        
         return schemas.RepoAnalysisResponse(
-            overall_analysis=overall_analysis,
+            overall_analysis=analysis_with_metadata,
             files_analyzed=len(files_content),
             repo_info=repo_info
         )
@@ -417,3 +517,88 @@ async def db_status(
         })
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+
+@router.get("/projects", response_model=List[schemas.Project])
+async def get_user_projects(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get all projects for the current user"""
+    try:
+        projects = db.query(models.Project).filter(
+            models.Project.owner_id == current_user["id"]
+        ).order_by(models.Project.created_at.desc()).all()
+        
+        return [
+            schemas.Project(
+                id=project.id,
+                name=project.name,
+                description=project.description,
+                github_repo_url=project.github_repo_url,
+                user_id=project.owner_id,
+                created_at=str(project.created_at),
+                updated_at=str(project.updated_at)
+            )
+            for project in projects
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/projects/{project_id}", response_model=schemas.Project)
+async def get_project(
+    project_id: int,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get a single project by ID"""
+    try:
+        project = db.query(models.Project).filter(
+            models.Project.id == project_id,
+            models.Project.owner_id == current_user["id"]
+        ).first()
+        
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+        
+        return schemas.Project(
+            id=project.id,
+            name=project.name,
+            description=project.description,
+            github_repo_url=project.github_repo_url,
+            user_id=project.owner_id,
+            created_at=str(project.created_at),
+            updated_at=str(project.updated_at)
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.delete("/projects/{project_id}")
+async def delete_project(
+    project_id: int,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a project"""
+    try:
+        project = db.query(models.Project).filter(
+            models.Project.id == project_id,
+            models.Project.owner_id == current_user["id"]
+        ).first()
+        
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+        
+        db.delete(project)
+        db.commit()
+        
+        return {"message": "Project deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))

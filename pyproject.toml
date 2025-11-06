@@ -1,0 +1,18 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "github-collab-backend"
+version = "0.1.0"
+authors = [
+  { name="Himanshu Negi", email="negihimanshu015@gmail.com" },
+]
+description = "AI-Powered GitHub Collaboration Backend"
+readme = "README.md"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+pythonpath = "."
+testpaths = ["tests"]
+python_files = ["test_*.py"]

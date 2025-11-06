@@ -1,0 +1,23 @@
+# Ignore Python cache and venv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.venv/
+
+# Ignore Node stuff
+frontend/node_modules/
+node_modules/
+
+# Ignore Git and IDE configs
+.git/
+.gitignore
+.DS_Store
+.vscode/
+.idea/
+
+# Ignore other local artifacts
+*.log
+*.env
+.env*

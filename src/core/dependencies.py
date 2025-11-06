@@ -13,7 +13,7 @@ security = HTTPBearer()
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
-) -> schemas.User:
+) -> dict:
     """
     Validate JWT token and return current user.
     Raises 401 if token is invalid or user not found.
@@ -51,12 +51,12 @@ async def get_current_user(
         if not user:
             raise credentials_exception
             
-        return schemas.User(
-            id=user.id,
-            email=user.email,
-            github_username=user.github_username,
-            created_at=str(user.created_at)
-        )
+        # Return a plain dict because downstream routes expect subscriptable access
+        return {
+            "id": user.id,
+            "email": user.email,
+            "github_username": user.github_username,
+        }
         
     except JWTError:
         raise credentials_exception
