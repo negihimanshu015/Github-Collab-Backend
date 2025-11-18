@@ -16,6 +16,8 @@ from src.utils.helpers import extract_repo_info, validate_github_url
 from src.core.config import settings
 from src.db import models
 from src import schemas
+from src.schemas import ApiResponse, GitHubRepo
+
 
 router = APIRouter()
 
@@ -98,33 +100,6 @@ async def login(user_credentials: schemas.UserLogin, db: Session = Depends(get_d
         "email": user.email
     }
 
-@router.get("/admin/db-status")
-async def check_db_status(db: Session = Depends(get_db)):
-    """Check database connection and tables"""
-    try:
-        from sqlalchemy import text
-        
-        # Try to execute a simple query
-        result = db.execute(text("SELECT 1")).scalar()
-        
-        # Get table information
-        tables = db.execute(text("""
-            SELECT table_name 
-            FROM information_schema.tables 
-            WHERE table_schema = 'public'
-        """)).fetchall()
-        
-        return {
-            "status": "connected",
-            "tables": [table[0] for table in tables],
-            "test_query_result": result
-        }
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Database error: {str(e)}"
-        )
-
 @router.post("/projects", response_model=schemas.Project)
 async def create_project(
     project: schemas.ProjectCreate,
@@ -193,16 +168,18 @@ async def get_project_analyses(
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/user/repos", response_model=schemas.GitHubRepoList)
+@router.get("/user/repos", response_model=ApiResponse[List[GitHubRepo]])
 async def get_user_repos(
     username: str,
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get all repositories for a GitHub user"""
     try:
         repos = github_service.get_user_repos(username)
-        return schemas.GitHubRepoList(repos=repos)
+        return ApiResponse(
+            data=repos,
+            message="Repositories fetched successfully"
+        )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -535,10 +512,8 @@ async def get_user_projects(
                 id=project.id,
                 name=project.name,
                 description=project.description,
-                github_repo_url=project.github_repo_url,
-                user_id=project.owner_id,
-                created_at=str(project.created_at),
-                updated_at=str(project.updated_at)
+                github_repo=project.github_repo,
+                owner_id=project.owner_id                
             )
             for project in projects
         ]
@@ -566,10 +541,8 @@ async def get_project(
             id=project.id,
             name=project.name,
             description=project.description,
-            github_repo_url=project.github_repo_url,
-            user_id=project.owner_id,
-            created_at=str(project.created_at),
-            updated_at=str(project.updated_at)
+            github_repo=project.github_repo,
+            owner_id=project.owner_id            
         )
     except HTTPException:
         raise

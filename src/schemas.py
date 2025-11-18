@@ -1,7 +1,12 @@
 from pydantic import BaseModel, EmailStr
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Generic, TypeVar
+from pydantic.generics import GenericModel
 
-
+T = TypeVar("T")
+class ApiResponse(GenericModel, Generic[T]):
+    data: T
+    message: Optional[str] = None
+    
 # --- User / Auth models -------------------------------------------------
 class UserBase(BaseModel):
     email: EmailStr
