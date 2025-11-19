@@ -12,13 +12,15 @@ class GitHubService:
             repos = []
             for repo in user.get_repos():
                 repos.append({
+                    "id": repo.id,
                     "name": repo.name,
                     "full_name": repo.full_name,
                     "description": repo.description,
-                    "url": repo.html_url,
+                    "html_url": repo.html_url,
                     "language": repo.language,
-                    "stars": repo.stargazers_count,
-                    "forks": repo.forks_count
+                    "stargazers_count": repo.stargazers_count,
+                    "forks_count": repo.forks_count,
+                    "default_branch": repo.default_branch
                 })
             return repos
         except GithubException as e:
@@ -45,7 +47,8 @@ class GitHubService:
                     "path": item.path,
                     "type": item.type,
                     "size": item.size,
-                    "url": item.html_url
+                    "url": item.html_url,
+                    "sha": item.sha
                 })
             
             return contents

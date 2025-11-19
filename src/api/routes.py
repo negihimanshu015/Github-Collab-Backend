@@ -17,7 +17,7 @@ from src.core.config import settings
 from src.db import models
 from src import schemas
 from src.schemas import ApiResponse, GitHubRepo
-
+from urllib.parse import unquote
 
 router = APIRouter()
 
@@ -62,7 +62,8 @@ async def register_user(user: schemas.UserCreate, db: Session = Depends(get_db))
             "access_token": access_token,
             "token_type": "bearer",
             "user_id": db_user.id,
-            "email": db_user.email
+            "email": db_user.email,
+            "github_username": db_user.github_username
         }
     except Exception as e:
         db.rollback()
@@ -97,7 +98,8 @@ async def login(user_credentials: schemas.UserLogin, db: Session = Depends(get_d
         "access_token": access_token,
         "token_type": "bearer",
         "user_id": user.id,
-        "email": user.email
+        "email": user.email,
+        "github_username": user.github_username
     }
 
 @router.post("/projects", response_model=schemas.Project)
@@ -183,7 +185,7 @@ async def get_user_repos(
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/repo/content", response_model=schemas.RepoContentResponse)
+@router.get("/repo/content", response_model=ApiResponse[List[schemas.RepoContentItem]])
 async def get_repository_content(
     repo_url: str,
     path: str = "",
@@ -192,12 +194,26 @@ async def get_repository_content(
 ):
     """Get content of a GitHub repository"""
     try:
-        if not validate_github_url(repo_url):
-            raise HTTPException(status_code=400, detail="Invalid GitHub URL")
-        
-        repo_info = extract_repo_info(repo_url)
-        content = github_service.get_repo_content(repo_info["full_name"], path)
-        return schemas.RepoContentResponse(content=content)
+        # Decode encoded URLs like https:%2F%2Fgithub.com%2Fowner%2Frepo
+        decoded_url = unquote(repo_url)
+
+        # Clean malformed URL (https:/github → https://github)
+        if decoded_url.startswith("https:/") and not decoded_url.startswith("https://"):
+            decoded_url = decoded_url.replace("https:/", "https://")
+
+        # Validate correct GitHub URL
+        if not validate_github_url(decoded_url):
+            raise HTTPException(status_code=400, detail=f"Invalid GitHub URL: {decoded_url}")
+
+        # Extract owner + repo
+        repo_info = extract_repo_info(decoded_url)
+
+        content = github_service.get_repo_content(
+            f"{repo_info['owner']}/{repo_info['repo']}",
+            path
+        )
+        return ApiResponse(data=content, message="Content fetched successfully")
+
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

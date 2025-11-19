@@ -34,6 +34,7 @@ class Token(BaseModel):
     token_type: str
     user_id: int
     email: str
+    github_username: str
 
 
 # --- Project / Analysis models -----------------------------------------
@@ -69,13 +70,15 @@ class Analysis(BaseModel):
 
 # --- GitHub / Repo related models -------------------------------------
 class GitHubRepo(BaseModel):
+    id: int
     name: str
     full_name: str
     description: Optional[str] = None
-    url: str
+    html_url: str
     language: Optional[str] = None
-    stars: int = 0
-    forks: int = 0
+    stargazers_count: int = 0
+    forks_count: int = 0
+    default_branch: str = "main"
 
 
 class GitHubRepoList(BaseModel):
@@ -88,6 +91,7 @@ class RepoContentItem(BaseModel):
     type: str
     size: int
     url: str
+    sha: str
 
 
 class RepoContentResponse(BaseModel):
