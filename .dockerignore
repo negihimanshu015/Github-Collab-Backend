@@ -1,23 +1,30 @@
-# Ignore Python cache and venv
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-venv/
-.venv/
+venv
+.venv
 
-# Ignore Node stuff
-frontend/node_modules/
-node_modules/
+# Environment files
+.env
+*.env
 
-# Ignore Git and IDE configs
-.git/
+# Node / Frontend
+frontend
+node_modules
+
+# Git / IDE
+.git
 .gitignore
 .DS_Store
-.vscode/
-.idea/
+.vscode
+.idea
 
-# Ignore other local artifacts
+# Logs
 *.log
-*.env
-.env*
+
+# Compose / Docker
+docker-compose.yml
+postgres_data
+pgadmin_data
