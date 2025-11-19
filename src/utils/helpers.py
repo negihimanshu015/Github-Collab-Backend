@@ -3,7 +3,7 @@ import html
 from typing import Dict, Optional
 import hashlib
 from datetime import datetime
-import bleach
+
 from src.core.config import settings
 
 # Constants
@@ -81,8 +81,8 @@ def sanitize_input(text: str, max_length: Optional[int] = None) -> str:
     # Basic XSS protection
     text = html.escape(text.strip())
     
-    # Use bleach for additional sanitization
-    text = bleach.clean(text)
+    # Bleach removed to reduce dependencies
+    # text = bleach.clean(text)
     
     # Enforce length limit if specified
     if max_length and len(text) > max_length:
