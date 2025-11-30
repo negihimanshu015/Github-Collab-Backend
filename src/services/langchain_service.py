@@ -10,13 +10,13 @@ from typing import List, Dict
 class LangChainService:
     def __init__(self):
         self.embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/embedding-001",
+            model="models/text-embedding-005",
             google_api_key=settings.GEMINI_API_KEY
         )
 
         # Use new Gemini wrapper (ChatGoogleGenerativeAI)
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-pro",
+            model="gemini-1.5-flash",
             google_api_key=settings.GEMINI_API_KEY,
             temperature=0.1,
         )
